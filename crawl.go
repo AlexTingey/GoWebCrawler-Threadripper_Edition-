@@ -63,7 +63,7 @@ func main() {
 			continue
 		}
 	}
-	//Kill the program with no errors if the queue empties (if every possible "utah.edu" link has been collected)
+	//Kill the program with no errors if the queue empties (if every possible link has been collected)
 	os.Exit(1)
 }
 
@@ -75,7 +75,7 @@ func collectLinks(node *html.Node, links *[]string) {
 		for _, a := range node.Attr {
 
 			if a.Key == "href" {
-				if strings.Contains(a.Val, "http") && strings.Contains(a.Val, "utah.edu") {
+				if strings.Contains(a.Val, "http") {
 
 					*links = append(*links, a.Val)
 					break
