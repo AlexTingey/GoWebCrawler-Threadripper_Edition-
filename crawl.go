@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -33,6 +34,7 @@ var f, err = os.OpenFile("output.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600
 var mapOfURIsToKeywords = make(map[string]bool)
 var mutex = &sync.Mutex{}
 var wg sync.WaitGroup
+var queue = make(chan string)
 
 func main() {
 	//Call this to Parse the commands that are passed into the
@@ -46,24 +48,15 @@ func main() {
 		fmt.Println("Specify a start page as an argument")
 		os.Exit(1)
 	}
-	queue := make(chan string)
-	mapOfURIsToKeywords[args[0]] = false
 	go func() { queue <- args[0] }()
 	for uri := range queue {
 		if val, ok := mapOfURIsToKeywords[uri]; !ok || val == false {
 			mapOfURIsToKeywords[uri] = true
 			go queueUp(uri, queue)
 
-		} else {
-			go func() {
-				//Wait here until something is added into the queue
-				<-queue
-			}()
-			//Skip this one since it was invalid (already visited)
-			continue
 		}
 	}
-	//Kill the program with no errors if the queue empties (if every possible link has been collected)
+	//Kill the program with no errors if the queue empties (if every possible "utah.edu" link has been collected)
 	os.Exit(1)
 }
 
@@ -166,16 +159,20 @@ func queueUp(uri string, queue chan string) {
 //https://stackoverflow.com/questions/27931884/convert-normal-space-whitespace-to-non-breaking-space-in-golang
 //Needed for removing non-breaking whitespace unicode character, as well as quote marks from strings
 func ReplaceSpace(s string) string {
-	var result []rune
-	const badSpace = '\u0020'
-	const otherBadSpace = '\u00A0'
-	const quotes = '"'
-	for _, r := range s {
-		if r == badSpace || r == otherBadSpace || r == quotes {
-			result = append(result, ' ')
-			continue
-		}
-		result = append(result, r)
-	}
-	return string(result)
+	// var result []rune
+	// const badSpace = '\u0020'
+	// const otherBadSpace = '\u00A0'
+	// const quotes = '"'
+	// const closingBracket = ""
+	var regex = regexp.MustCompile("[^a-zA-Z0-9 ]+")
+	processedString := regex.ReplaceAllString(s, "")
+
+	// for _, r := range s {
+	// 	if r == badSpace || r == otherBadSpace || r == quotes {
+	// 		result = append(result, ' ')
+	// 		continue
+	// 	}
+	// 	result = append(result, r)
+	// }
+	return processedString
 }
